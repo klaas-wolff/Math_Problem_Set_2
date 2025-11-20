@@ -1,7 +1,7 @@
 ---
 title: "Math for Data Science: Problem Set 2"
 output: pdf_document
-author: "Group: GROUP_MEMBERS_NAMES" 
+author: "Group: Helena Kandjumbwa, Klaas Wolff, Yunis Ayalew" 
 date: "2025-11-11"
 header-includes:
   - \usepackage{comment}
@@ -218,6 +218,48 @@ d. Interpret the $\hat{\lambda}$ you found in part (c) in your own words. What i
 e. Show that you found the MLE by plotting the log likelihood on the y-axis against a series of candidate values for $\lambda$ ranging from 0 to 4 on the x-axis. 
 
 ```{r, echo = TRUE, include = TRUE}
+
+#1(a)
+floods <- c(1, 3, 1, 2, 0)
+n <- length(floods)
+sum_x <- sum(floods)
+prod_factorials <- prod(factorial(floods))
+
+#L(lambda) = (lambda^7 * e^(-5*lambda)) / 12
+likelihood <- function(lambda) {
+  (lambda^sum_x * exp(-n * lambda)) / prod_factorials
+}
+
+# 1(b)
+# log L(lambda) = 7*log(lambda) - 5*lambda - log(12)
+log_likelihood <- function(lambda) {
+  sum_x * log(lambda) - n * lambda - log(prod_factorials)
+}
+
+# 1(c)
+# MLE: lambda_hat = sum(x) / n
+lambda_hat <- sum_x / n
+lambda_hat
+
+# 1(d)
+# lambda_hat represents the estimated average number of floods per 5-year period
+# It is calculated as the sample mean of the observed data
+# lambda_hat = 7/5 = 1.4 floods per period
+
+#1(e)
+lambda_values <- seq(0.01, 4, by = 0.01)
+log_lik_values <- sapply(lambda_values, log_likelihood)
+
+plot(lambda_values, log_lik_values,
+     type = "l",
+     col = "blue",
+     lwd = 2,
+     xlab = expression(lambda),
+     ylab = "Log-Likelihood",
+     main = "Log-Likelihood Function")
+
+abline(v = lambda_hat, col = "red", lwd = 2, lty = 2)
+points(lambda_hat, log_likelihood(lambda_hat), col = "red", pch = 19, cex = 1.5)
 
 ```
 
