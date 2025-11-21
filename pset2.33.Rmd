@@ -1,0 +1,484 @@
+---
+title: 'Math for Data Science: Problem Set 2'
+author: 'Group: Helena Kandjumbwa, Klaas Wolff, Yunis Ayalew'
+date: "2025-11-11"
+output:
+  html_document:
+    df_print: paged
+header-includes:
+- \usepackage{comment}
+- \newcommand{\BetaDist}{\mathrm{Beta}}
+- \newcommand{\Binom}{\mathrm{Binomial}}
+- \newcommand{\E}{\mathbb{E}}
+- \newcommand{\Prob}{\mathbb{P}}
+params:
+  soln: true
+---
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Due Date:** Thursday, November 20 by the end of the day. (The Moodle submission link will become inactive at midnight of November 21.)
+
+**Instructions:** Please submit one solution set per group and include your group members' names at the top. This time, please write your solutions within this Rmd file, under the relevant question. Please submit the knitted output as a pdf. Make sure to show all code you used to arrive at the answer. However, please provide a brief, clear answer to every question rather than making us infer it from your output, and please avoid printing unnecessary output. 
+
+## 1. The Law of Large Numbers and the Central Limit Theorem
+
+You are an urban planner interested in finding out how many people enter and leave the city using personal vehicles every day. (You're not interested in the number of *cars*; you're interested in the number of *people* who use cars to get to work.) To do this, you decide to collect data from a few different points around the city on how many people there are per car. You already have reliable satellite data on the number of cars that come into the city, so if you get a good estimate of people per car you'll be in good shape.
+
+Collecting data on people per car is costly and you'd love to minimize how many data points you have to collect. However, you're also familiar with the Law of Large Numbers and know that the sample mean converges to the true mean as the sample size $n$ grows large. 
+
+a. Let's illustrate this with a small simulation. Suppose the number of people in a car is distributed Poisson with a rate of $\lambda=2$ people per car.^[I should have mentioned that you're an urban planner in San Francisco, where it's rare but possible to have 0 people in a car.] Construct 500 samples from this distribution, with the first sample having $n=1$ cars, the second $n=2$ cars, and so on. Compute the average number of people per car in each sample. Plot this on the y-axis against the sample size on the x-axis and run a horizontal blue line through the true mean. Comment on what you see. 
+```{r, echo = TRUE, include = TRUE}
+library(tidyverse)
+```
+
+
+```{r lln-poisson, echo=TRUE, message=FALSE, warning=FALSE}
+#1 A:
+set.seed(1234)  #Random Seed to make results reproducible
+lambda <- 2
+max_n  <- 500
+
+# Generate sample means for n = 1, ..., 500
+results <- tibble(
+  n = 1:max_n
+) %>%
+  mutate(
+    sample_mean = map_dbl(n, ~ mean(rpois(.x, lambda = lambda)))
+  )
+
+# Plot
+ggplot(results, aes(x = n, y = sample_mean)) +
+  geom_line() +
+  geom_hline(yintercept = lambda,
+             colour = "blue",
+             linetype = "dashed",
+             linewidth = 1) +
+  labs(
+    title = "Law of Large Numbers for Poisson(λ = 2)",
+    x = "Sample size n",
+    y = "Sample mean (people per car)"
+  ) +
+  theme_minimal()
+
+```
+
+\textbf{Comment:}
+This plot illustrates the Law of Large Numbers (LLN). As the sample size $n$
+increases, the sample mean $\bar{X}$ of the number of people per car becomes
+less variable and stabilizes around the true mean. In our case, the underlying
+distribution is Poisson with parameter $\lambda = 2$, so the population mean is
+$2$. On the x-axis we increase $n$ from $1$ to $500$, and on the y-axis we track
+the corresponding sample means. For small $n$, the sample mean fluctuates
+substantially, but as $n$ grows larger these fluctuations shrink and the sample
+means converge toward $2$, exactly as predicted by the LLN.
+```
+
+b. You collect data on 100 cars and compute the average number of people per car in this sample. Use the Central Limit Theorem to write down the approximate distribution of this quantity. 
+
+**Answer.**  
+The Central Limit Theorem (CLT) states that, as the sample size $n \to \infty$,
+the sampling distribution of the *standardized* sample mean approaches
+a standard normal distribution. More precisely, if $\bar{X}_n$ denotes the
+sample mean of $n$ i.i.d. observations with mean $\mu$ and variance $\sigma^2$,
+then we can define the random variable
+\[
+Z = \sqrt{n}\,\frac{\bar{X}_n - \mu}{\sigma}.
+\]
+By the Central Limit Theorem,
+\[
+Z \xrightarrow{d} \mathcal{N}(0,1).
+\]
+
+For this problem, it is more convenient to work with the unstandardized
+version of the CLT, which tells us that for large $n$
+\[
+\bar{X}_n \approx \mathcal{N}\!\left(\mu,\; \frac{\sigma^2}{n}\right).
+\]
+
+In our setting, the number of people per car follows a Poisson distribution
+with parameter $\lambda = 2$. For a Poisson random variable $X$ we know that
+\[
+\mathbb{E}[X] = \lambda, \qquad \operatorname{Var}(X) = \lambda.
+\]
+To obtain the distribution of the sample mean based on $n = 100$ cars, we use
+\[
+\operatorname{Var}(\bar{X}) = \frac{\operatorname{Var}(X)}{n}
+= \frac{\lambda}{n} = \frac{2}{100} = 0.02,
+\]
+and
+\[
+\mathbb{E}[\bar{X}] = \lambda = 2.
+\]
+
+Thus, the normal approximation for the sampling distribution of the sample mean
+(number of people per car) for samples of size $n=100$ is
+\[
+\bar{X} \approx \mathcal{N}\!\left(2,\; \frac{2}{100}\right)
+\quad \Longleftrightarrow \quad
+\bar{X} \approx \mathcal{N}(2, 0.02).
+\]
+
+
+c. Let's examine this distribution more closely. Generate 10,000 replicates of the sample mean with $n=100$ and plot a histogram.^[Try using the `replicate` function rather than a loop, as this will speed things up considerably.] Are you convinced that the Normal approximation you found in the previous question is good enough? Compare this to $n=1$, $n=5$, and $n=30$, generating a histogram for each. (We're aiming to recreate the second row of Figure 10.5 from Slide 47 of Lecture 4.) Comment on what you observe. 
+```{r, echo = TRUE, include = TRUE}
+
+#1 C:
+set.seed(1234)  # Random Seed to make results reproducible
+
+lambda <- 2
+B <- 10000  # number of replicates
+
+# Function to generate one sample mean for given n
+sim_mean <- function(n) {
+  mean(rpois(n, lambda = lambda))
+}
+
+# Generate 10,000 replicates of the sample mean for different n
+means_1   <- replicate(B, sim_mean(1))
+means_5   <- replicate(B, sim_mean(5))
+means_30  <- replicate(B, sim_mean(30))
+means_100 <- replicate(B, sim_mean(100))
+
+# 2x2 layout for four histograms
+op <- par(mfrow = c(2, 2))
+
+# n = 1
+hist(
+  means_1,
+  breaks = seq(-0.5, max(means_1) + 0.5, by = 1),
+  freq   = FALSE,
+  main   = "Sample mean, n = 1",
+  xlab   = "Sample mean"
+)
+curve(dnorm(x, mean = lambda, sd = sqrt(lambda / 1)),
+      add = TRUE, lwd = 2, col = "blue")
+
+# n = 5
+hist(
+  means_5,
+  breaks = 30,
+  freq   = FALSE,
+  main   = "Sample mean, n = 5",
+  xlab   = "Sample mean"
+)
+curve(dnorm(x, mean = lambda, sd = sqrt(lambda / 5)),
+      add = TRUE, lwd = 2, col = "blue")
+
+# n = 30
+hist(
+  means_30,
+  breaks = 30,
+  freq   = FALSE,
+  main   = "Sample mean, n = 30",
+  xlab   = "Sample mean"
+)
+curve(dnorm(x, mean = lambda, sd = sqrt(lambda / 30)),
+      add = TRUE, lwd = 2, col = "blue")
+
+# n = 100
+hist(
+  means_100,
+  breaks = 30,
+  freq   = FALSE,
+  main   = "Sample mean, n = 100",
+  xlab   = "Sample mean"
+)
+curve(dnorm(x, mean = lambda, sd = sqrt(lambda / 100)),
+      add = TRUE, lwd = 2, col = "blue")
+
+# Reset plotting layout
+par(op)
+```
+
+\textbf{Comment:}
+For $n = 1$ the histogram of the sample means is clearly far from Normal: it is
+discrete and strongly right–skewed. As we increase the sample size to $n = 5$
+and $n = 30$, the histograms become smoother and more symmetric. By $n = 100$
+the bars line up very closely with the Normal curve $\mathcal{N}(2, 0.02)$
+drawn on top. This illustrates the Central Limit Theorem in practice: when we
+average more and more Poisson observations, the distribution of the sample mean
+starts to look increasingly Normal, even though the underlying Poisson
+distribution itself is skewed.
+
+
+```
+
+d. Suppose the city government will enact measures to regulate the number of people allowed per car during rush hour if they think the mean is below 1.7 people per car. Using the Normal approximation from part (b) above, find the probability that you get a mean of 1.7 or less in your sample of 100, even though the true mean is 2. (Please give the theoretical answer, not a simulation. You can use `R` as a calculator.) What should you do to ensure that this probability stays below 1\%?
+
+\textbf{Answer.}
+From part (b), we approximate the sampling distribution of the sample mean based on
+$n = 100$ cars by
+\[
+\bar{X} \approx \mathcal{N}\!\left(2,\; \frac{2}{100}\right)
+= \mathcal{N}(2, 0.02),
+\]
+since for $X \sim \text{Poisson}(2)$ we have $\mathbb{E}[X] = \operatorname{Var}(X) = 2$ and
+$\operatorname{Var}(\bar{X}) = \operatorname{Var}(X)/n$.
+
+We are interested in the probability of observing a sample mean as low as $1.7$ even
+though the true mean is $2$:
+\[
+\mathbb{P}(\bar{X} \le 1.7).
+\]
+Using the Normal approximation, we standardize:
+\[
+Z = \frac{\bar{X} - \mu}{\sigma / \sqrt{n}}
+= \frac{1.7 - 2}{\sqrt{2/100}}
+= \frac{-0.3}{\sqrt{0.02}}
+\approx -2.12.
+\]
+Thus
+\[
+\mathbb{P}(\bar{X} \le 1.7)
+\approx \mathbb{P}(Z \le -2.12)
+= \Phi(-2.12)
+\approx 0.017,
+\]
+where $\Phi$ is the standard normal cdf. In R, for example, one obtains
+\[
+\texttt{pnorm(1.7, mean = 2, sd = sqrt(2/100))} \approx 0.0169.
+\]
+So with a sample of size $n=100$, there is about a $1.7\%$ chance of seeing a mean of
+$1.7$ or lower, even if the true mean is actually $2$.
+
+To ensure that this probability is below $1\%$, we need a larger sample size $n$ such that
+\[
+\mathbb{P}(\bar{X} \le 1.7) \approx 0.01.
+\]
+Again using the Normal approximation
+\[
+\bar{X} \approx \mathcal{N}\!\left(2,\; \frac{2}{n}\right),
+\]
+we require
+\[
+\mathbb{P}\!\left(
+\frac{\bar{X} - 2}{\sqrt{2/n}} \le
+\frac{1.7 - 2}{\sqrt{2/n}}
+\right)
+= 0.01.
+\]
+Let $z_{0.01}$ denote the $1\%$ quantile of the standard normal distribution,
+$z_{0.01} \approx -2.326$. Then we solve
+\[
+\frac{1.7 - 2}{\sqrt{2/n}} = z_{0.01}
+\quad\Longrightarrow\quad
+\frac{-0.3}{\sqrt{2/n}} = -2.326.
+\]
+Taking absolute values and rearranging,
+\[
+\sqrt{\frac{2}{n}} = \frac{0.3}{2.326}
+\quad\Longrightarrow\quad
+\frac{2}{n} = \left(\frac{0.3}{2.326}\right)^2
+\quad\Longrightarrow\quad
+n = \frac{2}{(0.3/2.326)^2} \approx 120.3.
+\]
+
+Therefore, a sample size of at least $n = 121$ cars would keep the probability of observing
+a sample mean of $1.7$ or less below $1\%$, assuming the true mean is $2$.
+
+
+```{r, echo = TRUE, include = TRUE}
+
+```
+
+## 2. Maximum Likelihood 
+
+Bangladesh, home to 163 million people, is the world's most populous delta region; one-fourth of the country's land mass is only seven feet above sea level.\footnote{\url{https://www.nrdc.org/stories/bangladesh-country-underwater-culture-move}} Although the communities in Bangladesh's low-lying coastal regions have always been vulnerable to catastrophic flooding events, this seems to be happening with growing frequency. Is climate change increasing the occurrence of flooding in Bangladesh? 
+
+We often use the Poisson distribution to model (rare) climate events such as earthquakes and hurricanes. So let $X_t$ be the number of major floods in Bangladesh in time period $t$, and let $X_t$ be distributed:
+  \[ X_t \sim \text{Poisson}(\lambda) \]
+  
+a. We observe the following number of floods in Bangladesh per five-year period for the first quarter of the 21st century:
+    \[
+\left[    \begin{array}{cc}
+       1  & 2000-2004 \\
+       3  & 2005-2009 \\
+       1  & 2010-2014 \\
+       2  & 2015-2019 \\
+       0  & 2020-2024
+    \end{array} \right] 
+    \]
+Please write down the likelihood of this series of events for some unknown $\lambda$, assuming the floods in each period are independent and identically distributed.
+
+b. Take the log of the likelihood you wrote down in part (a). Show all steps. 
+
+c. Maximize the log-likelihood from part (b) to derive an MLE estimator for $\lambda$. Show all steps.
+
+d. Interpret the $\hat{\lambda}$ you found in part (c) in your own words. What is this quantity conceptually, and how do you get it from the data?
+
+e. Show that you found the MLE by plotting the log likelihood on the y-axis against a series of candidate values for $\lambda$ ranging from 0 to 4 on the x-axis. 
+
+```{r, echo = TRUE, include = TRUE}
+
+#1(a)
+floods <- c(1, 3, 1, 2, 0)
+n <- length(floods)
+sum_x <- sum(floods)
+prod_factorials <- prod(factorial(floods))
+
+#L(lambda) = (lambda^7 * e^(-5*lambda)) / 12
+likelihood <- function(lambda) {
+  (lambda^sum_x * exp(-n * lambda)) / prod_factorials
+}
+
+# 1(b)
+# log L(lambda) = 7*log(lambda) - 5*lambda - log(12)
+log_likelihood <- function(lambda) {
+  sum_x * log(lambda) - n * lambda - log(prod_factorials)
+}
+
+# 1(c)
+# MLE: lambda_hat = sum(x) / n
+lambda_hat <- sum_x / n
+lambda_hat
+
+# 1(d)
+# lambda_hat represents the estimated average number of floods per 5-year period
+# It is calculated as the sample mean of the observed data
+# lambda_hat = 7/5 = 1.4 floods per period
+
+#1(e)
+lambda_values <- seq(0.01, 4, by = 0.01)
+log_lik_values <- sapply(lambda_values, log_likelihood)
+
+plot(lambda_values, log_lik_values,
+     type = "l",
+     col = "blue",
+     lwd = 2,
+     xlab = expression(lambda),
+     ylab = "Log-Likelihood",
+     main = "Log-Likelihood Function")
+
+abline(v = lambda_hat, col = "red", lwd = 2, lty = 2)
+points(lambda_hat, log_likelihood(lambda_hat), col = "red", pch = 19, cex = 1.5)
+
+```
+
+## 3. Bayesian Analysis 
+
+You monitor the presence of a blue--green algae species across freshwater sites. In a sample of \(n=274\) sites, you observe algae present at \(y=44\) sites. Let \(\theta \in (0,1)\) denote the true probability that a randomly selected site has detectable algae.^[This question is adapted from https://avehtari.github.io/BDA_course_Aalto/assignments/assignment2.html.]
+
+a. Assume: 
+\[
+y \sim \Binom(n,\theta), \qquad \theta \sim \BetaDist(\alpha,\beta).
+\]
+Take as a baseline prior \(\alpha=2,\ \beta=10\). Using Beta--Binomial conjugacy, write down the posterior \(p(\theta\mid y,n)\) and identify its parameters.
+a. Assume: 
+\[
+y \sim \Binom(n,\theta), \qquad \theta \sim \BetaDist(\alpha,\beta).
+\]
+Take as a baseline prior \(\alpha=2,\ \beta=10\). Using Beta--Binomial conjugacy, write down the posterior \(p(\theta\mid y,n)\) and identify its parameters.
+
+3 A. \\ since the Binomial likelihood is conjugate to Beta prior, psoterior distribution for θ remains Beta distribution. 
+The givens here are: \\
+$Y$ (number of successes) = 44 with total number of sites being $n = 274$ and \\
+$\theta \in (0, 1)$. $y \sim \text{Binomial}(n, \theta)$, $\theta \sim \text{Beta}(\alpha, \beta)$. \\
+The prior probability is \\
+A baseline prior $\alpha = 2, \beta = 10$. Using Beta–Binomial conjugacy, write down the posterior \\
+$p(\theta \mid y, n)$ and identify its parameters. \\
+In Beta–Binomial conjugacy, posterior is: $\text{Beta}(\alpha, \beta) \rightarrow \text{Beta}(\alpha + y, \beta + n - y)$ \\
+$p(\theta \mid y, n) = \text{Beta}(2 + 44, 10 + 274 - 44)$ \\
+$\alpha_{\text{Post}} = 46$ and $\beta_{\text{Post}} = 240$ \\
+This means: $\theta \mid y \sim \text{Beta}(46, 240)$.
+
+b. Give the expression (in terms of \(\alpha,\beta,y,n\)) for the posterior mean of \(\theta\). 
+\\
+For posterior distribution, "Beta" $(\alpha', \beta')$, the mean is: 
+\[
+\text{mean} = \frac{\alpha'}{\alpha' + \beta'} = \frac{\alpha + y}{\alpha + y + (\beta + n - y)}
+\] 
+In the denominator, the $y - y = 0$ results in the following formula: 
+\[
+\frac{\alpha + y}{\alpha + \beta + n} = \frac{2 + 44}{2 + 10 + 274} = \frac{46}{286} \approx 0.16
+\]
+
+c. Alternatively, we may consider using the priors below: 
+\begin{align*}
+&\BetaDist(1,1)\quad\text{(uniform)} \\
+&\BetaDist(0.5,0.5)\quad\text{(Jeffreys-type weak prior)} \\ 
+&\BetaDist(100,2)\quad\text{(strongly informative, favoring large \(\theta\))}
+\end{align*}
+Please plot, on a common \(\theta \in [0,1]\) axis, the posterior densities for the four priors (the baseline prior in part (a) and the alternative priors above). 
+
+```{r, echo = TRUE, include = TRUE}
+library(tidyverse)
+
+# assigning the total success and number of trials
+y <- 44
+n <- 274
+
+# assigning priors using 
+priors <- list(
+  baseline = c(2, 10),
+  uniform = c(1, 1),
+  jeffreys = c(0.5, 0.5),
+  informative = c(100, 2)
+)
+
+#since we will be plotting beta distribution, we have ton create 1000 equally spaced probability values between 0 and 1 to generate smooth, continuous-looking curves for the posterior density functions.
+theta <- seq(0, 1, length.out = 1000)
+
+# Create empty data frame for posterior trials 
+posterior_data <- data.frame()
+
+# calculating posterior density based on the formula in 3A using for loops. 
+for(prior_name in names(priors)) {
+  a <- priors[[prior_name]][1]
+  b <- priors[[prior_name]][2]
+  
+  # Posterior parameters: Beta(a + y, b + n - y)
+  alpha_post <- a + y
+  beta_post <- b + n - y
+  
+  # Calculate posterior density
+  post_dens <- dbeta(theta, shape1 = alpha_post, shape2 = beta_post)
+  
+  posterior_data <- rbind(posterior_data,
+                         data.frame(
+                           theta = theta,
+                           density = post_dens,
+                           prior = prior_name
+                         ))
+}
+
+# Calculate sample proportion
+sample_prop <- y/n
+
+# Create the plot
+ggplot(posterior_data, aes(x = theta, y = density, color = prior)) +
+  geom_line(size = 1, alpha = 0.45) +
+  geom_vline(xintercept = sample_prop, linetype = "dashed", size = 1) +
+  scale_color_manual(
+    name = "Priors",
+    values = c(
+      baseline = "red",
+      uniform = "blue", 
+      jeffreys = "green",
+      informative = "purple"
+    ),
+    labels = c(
+      baseline = "Beta(2,10) - Baseline",
+      uniform = "Beta(1,1) - Uniform",
+      jeffreys = "Beta(0.5,0.5) - Jeffreys",
+      informative = "Beta(100,2) - Informative"
+    )
+  ) + coord_cartesian(xlim = c(0.05, 0.70)) + labs(
+    title = "Posterior Distributions for Different Priors",
+    x = "θ",
+    y = "Posterior Density"
+  ) +
+  theme_minimal() +
+  annotate("text", x = sample_prop, y = max(posterior_data$density), 
+           label = paste("Sample proportion =", round(sample_prop, 3)),
+           hjust = -0.1, vjust = 1, size = 3)
+```
+
+d. In a few sentences, interpret how prior shape and strength influence the posterior relative to the data. Which prior(s) seem the most defensible in this context? If you were interested in monitoring algae presence, what would be your takeaway from this analysis? 
+ANSWER D.
+The prior values of baseline, uniform and Jeffreys have only weak influence on posterior value. The baseline is relatively informative when compared to the uniform and the Jeffreys (similar to uniform except wider tails).
+The informative one dominates the posterior favoring large θ which misleads from actual data. we can say the baseline, the uniform, and Jeffreys seems to be defensible. 
+
+the posterior mean is found to be 16% meaning 16% sites have detectable algae suggesting monitoring effort should focus on this sites. 
