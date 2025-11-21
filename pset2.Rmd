@@ -78,11 +78,11 @@ means converge toward $2$, exactly as predicted by the LLN.
 
 b. You collect data on 100 cars and compute the average number of people per car in this sample. Use the Central Limit Theorem to write down the approximate distribution of this quantity. 
 
-\textbf{Answer.}
+**Answer.**  
 The Central Limit Theorem (CLT) states that, as the sample size $n \to \infty$,
-the sampling distribution of the \emph{standardized} sample mean approaches
+the sampling distribution of the *standardized* sample mean approaches
 a standard normal distribution. More precisely, if $\bar{X}_n$ denotes the
-sample mean of $n$ i.i.d.\ observations with mean $\mu$ and variance $\sigma^2$,
+sample mean of $n$ i.i.d. observations with mean $\mu$ and variance $\sigma^2$,
 then we can define the random variable
 \[
 Z = \sqrt{n}\,\frac{\bar{X}_n - \mu}{\sigma}.
@@ -123,7 +123,6 @@ Thus, the normal approximation for the sampling distribution of the sample mean
 
 
 c. Let's examine this distribution more closely. Generate 10,000 replicates of the sample mean with $n=100$ and plot a histogram.^[Try using the `replicate` function rather than a loop, as this will speed things up considerably.] Are you convinced that the Normal approximation you found in the previous question is good enough? Compare this to $n=1$, $n=5$, and $n=30$, generating a histogram for each. (We're aiming to recreate the second row of Figure 10.5 from Slide 47 of Lecture 4.) Comment on what you observe. 
-
 ```{r, echo = TRUE, include = TRUE}
 
 #1 C:
