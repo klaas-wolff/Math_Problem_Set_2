@@ -34,7 +34,7 @@ a. Let's illustrate this with a small simulation. Suppose the number of people i
 library(tidyverse)
 ```
 
-
+**1a Answer.**  
 ```{r lln-poisson, echo=TRUE, message=FALSE, warning=FALSE}
 #1 A:
 set.seed(1234)  #Random Seed to make results reproducible
@@ -74,11 +74,11 @@ $2$. On the x-axis we increase $n$ from $1$ to $500$, and on the y-axis we track
 the corresponding sample means. For small $n$, the sample mean fluctuates
 substantially, but as $n$ grows larger these fluctuations shrink and the sample
 means converge toward $2$, exactly as predicted by the LLN.
-```
+
 
 b. You collect data on 100 cars and compute the average number of people per car in this sample. Use the Central Limit Theorem to write down the approximate distribution of this quantity. 
 
-**Answer.**  
+**1b Answer.**  
 The Central Limit Theorem (CLT) states that, as the sample size $n \to \infty$,
 the sampling distribution of the *standardized* sample mean approaches
 a standard normal distribution. More precisely, if $\bar{X}_n$ denotes the
@@ -123,6 +123,7 @@ Thus, the normal approximation for the sampling distribution of the sample mean
 
 
 c. Let's examine this distribution more closely. Generate 10,000 replicates of the sample mean with $n=100$ and plot a histogram.^[Try using the `replicate` function rather than a loop, as this will speed things up considerably.] Are you convinced that the Normal approximation you found in the previous question is good enough? Compare this to $n=1$, $n=5$, and $n=30$, generating a histogram for each. (We're aiming to recreate the second row of Figure 10.5 from Slide 47 of Lecture 4.) Comment on what you observe. 
+**1c Answer.**  
 ```{r, echo = TRUE, include = TRUE}
 
 #1 C:
@@ -204,10 +205,10 @@ starts to look increasingly Normal, even though the underlying Poisson
 distribution itself is skewed.
 
 
-```
 
 d. Suppose the city government will enact measures to regulate the number of people allowed per car during rush hour if they think the mean is below 1.7 people per car. Using the Normal approximation from part (b) above, find the probability that you get a mean of 1.7 or less in your sample of 100, even though the true mean is 2. (Please give the theoretical answer, not a simulation. You can use `R` as a calculator.) What should you do to ensure that this probability stays below 1\%?
 
+**1d Answer.**  
 \textbf{Answer.}
 From part (b), we approximate the sampling distribution of the sample mean based on
 $n = 100$ cars by
@@ -311,9 +312,10 @@ d. Interpret the $\hat{\lambda}$ you found in part (c) in your own words. What i
 
 e. Show that you found the MLE by plotting the log likelihood on the y-axis against a series of candidate values for $\lambda$ ranging from 0 to 4 on the x-axis. 
 
+**2 a, b, c, d, e Answer.**  
 ```{r, echo = TRUE, include = TRUE}
 
-#1(a)
+#2(a)
 floods <- c(1, 3, 1, 2, 0)
 n <- length(floods)
 sum_x <- sum(floods)
@@ -324,18 +326,18 @@ likelihood <- function(lambda) {
   (lambda^sum_x * exp(-n * lambda)) / prod_factorials
 }
 
-# 1(b)
+# 2(b)
 # log L(lambda) = 7*log(lambda) - 5*lambda - log(12)
 log_likelihood <- function(lambda) {
   sum_x * log(lambda) - n * lambda - log(prod_factorials)
 }
 
-# 1(c)
+# 2(c)
 # MLE: lambda_hat = sum(x) / n
 lambda_hat <- sum_x / n
 lambda_hat
 
-# 1(d)
+# 2(d)
 # lambda_hat represents the estimated average number of floods per 5-year period
 # It is calculated as the sample mean of the observed data
 # lambda_hat = 7/5 = 1.4 floods per period
@@ -372,7 +374,8 @@ y \sim \Binom(n,\theta), \qquad \theta \sim \BetaDist(\alpha,\beta).
 \]
 Take as a baseline prior \(\alpha=2,\ \beta=10\). Using Beta--Binomial conjugacy, write down the posterior \(p(\theta\mid y,n)\) and identify its parameters.
 
-3 A. \\ since the Binomial likelihood is conjugate to Beta prior, psoterior distribution for θ remains Beta distribution. 
+**3a Answer.**  
+\\ since the Binomial likelihood is conjugate to Beta prior, psoterior distribution for θ remains Beta distribution. 
 The givens here are: \\
 $Y$ (number of successes) = 44 with total number of sites being $n = 274$ and \\
 $\theta \in (0, 1)$. $y \sim \text{Binomial}(n, \theta)$, $\theta \sim \text{Beta}(\alpha, \beta)$. \\
@@ -384,7 +387,8 @@ $p(\theta \mid y, n) = \text{Beta}(2 + 44, 10 + 274 - 44)$ \\
 $\alpha_{\text{Post}} = 46$ and $\beta_{\text{Post}} = 240$ \\
 This means: $\theta \mid y \sim \text{Beta}(46, 240)$.
 
-b. Give the expression (in terms of \(\alpha,\beta,y,n\)) for the posterior mean of \(\theta\). 
+**3b Answer.**  
+Give the expression (in terms of \(\alpha,\beta,y,n\)) for the posterior mean of \(\theta\). 
 \\
 For posterior distribution, "Beta" $(\alpha', \beta')$, the mean is: 
 \[
@@ -395,7 +399,8 @@ In the denominator, the $y - y = 0$ results in the following formula:
 \frac{\alpha + y}{\alpha + \beta + n} = \frac{2 + 44}{2 + 10 + 274} = \frac{46}{286} \approx 0.16
 \]
 
-c. Alternatively, we may consider using the priors below: 
+**3c Answer.**  
+Alternatively, we may consider using the priors below: 
 \begin{align*}
 &\BetaDist(1,1)\quad\text{(uniform)} \\
 &\BetaDist(0.5,0.5)\quad\text{(Jeffreys-type weak prior)} \\ 
@@ -477,7 +482,8 @@ ggplot(posterior_data, aes(x = theta, y = density, color = prior)) +
 ```
 
 d. In a few sentences, interpret how prior shape and strength influence the posterior relative to the data. Which prior(s) seem the most defensible in this context? If you were interested in monitoring algae presence, what would be your takeaway from this analysis? 
-ANSWER D.
+
+**3d Answer.**  
 The prior values of baseline, uniform and Jeffreys have only weak influence on posterior value. The baseline is relatively informative when compared to the uniform and the Jeffreys (similar to uniform except wider tails).
 The informative one dominates the posterior favoring large θ which misleads from actual data. we can say the baseline, the uniform, and Jeffreys seems to be defensible. 
 
