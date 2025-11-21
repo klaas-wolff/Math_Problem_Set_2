@@ -1,16 +1,18 @@
 ---
-title: "Math for Data Science: Problem Set 2"
-output: pdf_document
-author: "Group: Helena Kandjumbwa, Klaas Wolff, Yunis Ayalew" 
+title: 'Math for Data Science: Problem Set 2'
+author: 'Group: Helena Kandjumbwa, Klaas Wolff, Yunis Ayalew'
 date: "2025-11-11"
+output:
+  html_document:
+    df_print: paged
 header-includes:
-  - \usepackage{comment}
-  - \newcommand{\BetaDist}{\mathrm{Beta}}
-  - \newcommand{\Binom}{\mathrm{Binomial}}
-  - \newcommand{\E}{\mathbb{E}}
-  - \newcommand{\Prob}{\mathbb{P}}
+- \usepackage{comment}
+- \newcommand{\BetaDist}{\mathrm{Beta}}
+- \newcommand{\Binom}{\mathrm{Binomial}}
+- \newcommand{\E}{\mathbb{E}}
+- \newcommand{\Prob}{\mathbb{P}}
 params:
-  soln: TRUE
+  soln: true
 ---
   
 ```{r setup, include=FALSE}
@@ -28,86 +30,104 @@ You are an urban planner interested in finding out how many people enter and lea
 Collecting data on people per car is costly and you'd love to minimize how many data points you have to collect. However, you're also familiar with the Law of Large Numbers and know that the sample mean converges to the true mean as the sample size $n$ grows large. 
 
 a. Let's illustrate this with a small simulation. Suppose the number of people in a car is distributed Poisson with a rate of $\lambda=2$ people per car.^[I should have mentioned that you're an urban planner in San Francisco, where it's rare but possible to have 0 people in a car.] Construct 500 samples from this distribution, with the first sample having $n=1$ cars, the second $n=2$ cars, and so on. Compute the average number of people per car in each sample. Plot this on the y-axis against the sample size on the x-axis and run a horizontal blue line through the true mean. Comment on what you see. 
+```{r, echo = TRUE, include = TRUE}
+library(tidyverse)
+```
+
 
 ```{r lln-poisson, echo=TRUE, message=FALSE, warning=FALSE}
-set.seed(123)  #Random Seed to make results reproducible
-
-#1 B:
+#1 A:
+set.seed(1234)  #Random Seed to make results reproducible
 lambda <- 2
 max_n  <- 500
 
-# Compute Mean for each sample size
-sample_sizes <- 1:max_n
-sample_means <- numeric(max_n)
+# Generate sample means for n = 1, ..., 500
+results <- tibble(
+  n = 1:max_n
+) %>%
+  mutate(
+    sample_mean = map_dbl(n, ~ mean(rpois(.x, lambda = lambda)))
+  )
 
-for (n in sample_sizes) {
-  x <- rpois(n, lambda)
-  sample_means[n] <- mean(x)
-}
+# Plot
+ggplot(results, aes(x = n, y = sample_mean)) +
+  geom_line() +
+  geom_hline(yintercept = lambda,
+             colour = "blue",
+             linetype = "dashed",
+             linewidth = 1) +
+  labs(
+    title = "Law of Large Numbers for Poisson(λ = 2)",
+    x = "Sample size n",
+    y = "Sample mean (people per car)"
+  ) +
+  theme_minimal()
 
-#Plot
-plot(
-  sample_sizes, sample_means,
-  type = "l",
-  xlab = "Sample size n",
-  ylab = "Sample mean of people per car",
-  main = "Law of Large Numbers for Poisson(λ = 2)"
-)
-
-# BLue Line mean
-abline(h = lambda, col = "blue", lwd = 2)
 ```
 
-
+\textbf{Comment:}
+This plot illustrates the Law of Large Numbers (LLN). As the sample size $n$
+increases, the sample mean $\bar{X}$ of the number of people per car becomes
+less variable and stabilizes around the true mean. In our case, the underlying
+distribution is Poisson with parameter $\lambda = 2$, so the population mean is
+$2$. On the x-axis we increase $n$ from $1$ to $500$, and on the y-axis we track
+the corresponding sample means. For small $n$, the sample mean fluctuates
+substantially, but as $n$ grows larger these fluctuations shrink and the sample
+means converge toward $2$, exactly as predicted by the LLN.
 ```
 
 b. You collect data on 100 cars and compute the average number of people per car in this sample. Use the Central Limit Theorem to write down the approximate distribution of this quantity. 
+
+\textbf{Answer.}
+The Central Limit Theorem (CLT) states that, as the sample size $n \to \infty$,
+the sampling distribution of the \emph{standardized} sample mean approaches
+a standard normal distribution. More precisely, if $\bar{X}_n$ denotes the
+sample mean of $n$ i.i.d.\ observations with mean $\mu$ and variance $\sigma^2$,
+then we can define the random variable
+\[
+Z = \sqrt{n}\,\frac{\bar{X}_n - \mu}{\sigma}.
+\]
+By the Central Limit Theorem,
+\[
+Z \xrightarrow{d} \mathcal{N}(0,1).
+\]
+
+For this problem, it is more convenient to work with the unstandardized
+version of the CLT, which tells us that for large $n$
+\[
+\bar{X}_n \approx \mathcal{N}\!\left(\mu,\; \frac{\sigma^2}{n}\right).
+\]
+
+In our setting, the number of people per car follows a Poisson distribution
+with parameter $\lambda = 2$. For a Poisson random variable $X$ we know that
+\[
+\mathbb{E}[X] = \lambda, \qquad \operatorname{Var}(X) = \lambda.
+\]
+To obtain the distribution of the sample mean based on $n = 100$ cars, we use
+\[
+\operatorname{Var}(\bar{X}) = \frac{\operatorname{Var}(X)}{n}
+= \frac{\lambda}{n} = \frac{2}{100} = 0.02,
+\]
+and
+\[
+\mathbb{E}[\bar{X}] = \lambda = 2.
+\]
+
+Thus, the normal approximation for the sampling distribution of the sample mean
+(number of people per car) for samples of size $n=100$ is
+\[
+\bar{X} \approx \mathcal{N}\!\left(2,\; \frac{2}{100}\right)
+\quad \Longleftrightarrow \quad
+\bar{X} \approx \mathcal{N}(2, 0.02).
+\]
+
 
 c. Let's examine this distribution more closely. Generate 10,000 replicates of the sample mean with $n=100$ and plot a histogram.^[Try using the `replicate` function rather than a loop, as this will speed things up considerably.] Are you convinced that the Normal approximation you found in the previous question is good enough? Compare this to $n=1$, $n=5$, and $n=30$, generating a histogram for each. (We're aiming to recreate the second row of Figure 10.5 from Slide 47 of Lecture 4.) Comment on what you observe. 
 
 ```{r, echo = TRUE, include = TRUE}
 
-We observe \(X_1, \dots, X_{100}\), where each \(X_i\) is the number of people in car \(i\), and we assume
-\[
-X_i \sim \text{Poisson}(\lambda = 2), \quad \text{independently}.
-\]
-
-The sample mean is
-\[
-\bar X = \frac{1}{100} \sum_{i=1}^{100} X_i.
-\]
-
-For a Poisson(\(\lambda\)) random variable, we have
-\[
-\mathbb{E}[X_i] = \lambda = 2, \quad \mathrm{Var}(X_i) = \lambda = 2.
-\]
-
-Therefore, for the sample mean,
-\[
-\mathbb{E}[\bar X] = 2, \quad \mathrm{Var}(\bar X) = \frac{2}{100} = 0.02,
-\]
-so the standard deviation of \(\bar X\) is \(\sqrt{0.02} \approx 0.141\).
-
-By the Central Limit Theorem, for \(n = 100\) the distribution of the sample mean is approximately Normal:
-\[
-\bar X \approx \mathcal{N}(2, 0.02).
-\]
-
-```{r part-b, echo=TRUE, results='hide', message=FALSE, warning=FALSE}
-lambda <- 2
-n <- 100
-
-mu_bar  <- lambda
-var_bar <- lambda / n
-sd_bar  <- sqrt(var_bar)
-
-mu_bar
-var_bar
-sd_bar
-
-
 #1 C:
-set.seed(123)
+set.seed(1234)  # Random Seed to make results reproducible
 
 lambda <- 2
 B <- 10000  # number of replicates
@@ -172,19 +192,94 @@ curve(dnorm(x, mean = lambda, sd = sqrt(lambda / 100)),
 
 # Reset plotting layout
 par(op)
-
-**Comment:**  
-For \(n = 1\), the distribution of the sample mean is clearly discrete and right-skewed and does not look Normal at all.  
-For \(n = 5\), the distribution is already smoother but still somewhat skewed, so the Normal approximation is only rough.  
-For \(n = 30\), the sampling distribution is much more symmetric and bell-shaped, and the Normal curve fits reasonably well.  
-For \(n = 100\), the histogram is very close to a Normal shape centered at 2, and the overlaid Normal density \(\mathcal{N}(2, 0.02)\) matches the simulated distribution very well.  
-I am therefore convinced that for \(n = 100\) the Normal approximation from part (b) is good enough, while it is clearly poor for very small sample sizes like \(n = 1\) or \(n = 5\).
 ```
+
+\textbf{Comment:}
+For $n = 1$ the histogram of the sample means is clearly far from Normal: it is
+discrete and strongly right–skewed. As we increase the sample size to $n = 5$
+and $n = 30$, the histograms become smoother and more symmetric. By $n = 100$
+the bars line up very closely with the Normal curve $\mathcal{N}(2, 0.02)$
+drawn on top. This illustrates the Central Limit Theorem in practice: when we
+average more and more Poisson observations, the distribution of the sample mean
+starts to look increasingly Normal, even though the underlying Poisson
+distribution itself is skewed.
 
 
 ```
 
 d. Suppose the city government will enact measures to regulate the number of people allowed per car during rush hour if they think the mean is below 1.7 people per car. Using the Normal approximation from part (b) above, find the probability that you get a mean of 1.7 or less in your sample of 100, even though the true mean is 2. (Please give the theoretical answer, not a simulation. You can use `R` as a calculator.) What should you do to ensure that this probability stays below 1\%?
+
+\textbf{Answer.}
+From part (b), we approximate the sampling distribution of the sample mean based on
+$n = 100$ cars by
+\[
+\bar{X} \approx \mathcal{N}\!\left(2,\; \frac{2}{100}\right)
+= \mathcal{N}(2, 0.02),
+\]
+since for $X \sim \text{Poisson}(2)$ we have $\mathbb{E}[X] = \operatorname{Var}(X) = 2$ and
+$\operatorname{Var}(\bar{X}) = \operatorname{Var}(X)/n$.
+
+We are interested in the probability of observing a sample mean as low as $1.7$ even
+though the true mean is $2$:
+\[
+\mathbb{P}(\bar{X} \le 1.7).
+\]
+Using the Normal approximation, we standardize:
+\[
+Z = \frac{\bar{X} - \mu}{\sigma / \sqrt{n}}
+= \frac{1.7 - 2}{\sqrt{2/100}}
+= \frac{-0.3}{\sqrt{0.02}}
+\approx -2.12.
+\]
+Thus
+\[
+\mathbb{P}(\bar{X} \le 1.7)
+\approx \mathbb{P}(Z \le -2.12)
+= \Phi(-2.12)
+\approx 0.017,
+\]
+where $\Phi$ is the standard normal cdf. In R, for example, one obtains
+\[
+\texttt{pnorm(1.7, mean = 2, sd = sqrt(2/100))} \approx 0.0169.
+\]
+So with a sample of size $n=100$, there is about a $1.7\%$ chance of seeing a mean of
+$1.7$ or lower, even if the true mean is actually $2$.
+
+To ensure that this probability is below $1\%$, we need a larger sample size $n$ such that
+\[
+\mathbb{P}(\bar{X} \le 1.7) \approx 0.01.
+\]
+Again using the Normal approximation
+\[
+\bar{X} \approx \mathcal{N}\!\left(2,\; \frac{2}{n}\right),
+\]
+we require
+\[
+\mathbb{P}\!\left(
+\frac{\bar{X} - 2}{\sqrt{2/n}} \le
+\frac{1.7 - 2}{\sqrt{2/n}}
+\right)
+= 0.01.
+\]
+Let $z_{0.01}$ denote the $1\%$ quantile of the standard normal distribution,
+$z_{0.01} \approx -2.326$. Then we solve
+\[
+\frac{1.7 - 2}{\sqrt{2/n}} = z_{0.01}
+\quad\Longrightarrow\quad
+\frac{-0.3}{\sqrt{2/n}} = -2.326.
+\]
+Taking absolute values and rearranging,
+\[
+\sqrt{\frac{2}{n}} = \frac{0.3}{2.326}
+\quad\Longrightarrow\quad
+\frac{2}{n} = \left(\frac{0.3}{2.326}\right)^2
+\quad\Longrightarrow\quad
+n = \frac{2}{(0.3/2.326)^2} \approx 120.3.
+\]
+
+Therefore, a sample size of at least $n = 121$ cars would keep the probability of observing
+a sample mean of $1.7$ or less below $1\%$, assuming the true mean is $2$.
+
 
 ```{r, echo = TRUE, include = TRUE}
 
